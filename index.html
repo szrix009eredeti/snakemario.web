@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Két minijáték egy biztonságos, statikus weboldalon: Mario és Snake.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <title>Mario és Snake Játékok</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="background-scene" aria-hidden="true">
+    <div class="background-glow glow-one"></div>
+    <div class="background-glow glow-two"></div>
+    <div class="background-grid"></div>
+  </div>
+  <div id="binaryTrail" class="binary-trail" aria-hidden="true"></div>
+
+  <main class="page">
+    <section class="hero">
+      <p class="eyebrow">Biztonságos, statikus weboldal</p>
+      <h1>Két játék, egy oldal</h1>
+      <p class="intro">
+        Válassz játékot: az egyik gomb egy egyszerű Mario-szerű platformert indít,
+        a másik pedig egy klasszikus Snake játékot.
+      </p>
+
+      <div class="menu" aria-label="Játékválasztó">
+        <button id="marioButton" class="game-button mario" type="button">Mario</button>
+        <button id="snakeButton" class="game-button snake" type="button">Snake</button>
+      </div>
+    </section>
+
+    <section class="game-shell" aria-live="polite">
+      <div class="status-bar">
+        <h2 id="gameTitle">Válassz egy játékot</h2>
+        <p id="gameHint">A játék itt fog megjelenni. Billentyűzet és érintés is támogatott.</p>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="gameCanvas" width="960" height="540" aria-label="Játéktér"></canvas>
+      </div>
+
+      <div class="controls">
+        <button id="restartButton" class="secondary" type="button" disabled>Újraindítás</button>
+        <button id="pauseButton" class="secondary" type="button" disabled>Szünet</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
