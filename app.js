@@ -7,6 +7,12 @@ const pauseButton = document.getElementById("pauseButton");
 const gameTitle = document.getElementById("gameTitle");
 const gameHint = document.getElementById("gameHint");
 const binaryTrail = document.getElementById("binaryTrail");
+const leaderboardForm = document.getElementById("leaderboardForm");
+const playerNameInput = document.getElementById("playerNameInput");
+const saveScoreButton = document.getElementById("saveScoreButton");
+const clearLeaderboardButton = document.getElementById("clearLeaderboardButton");
+const snakeLeaderboard = document.getElementById("snakeLeaderboard");
+const leaderboardHint = document.getElementById("leaderboardHint");
 
 const marioSprite = createProcessedSprite("OIP.jpg");
 const coinSprite = createProcessedSprite("OIP (1).jpg");
@@ -37,6 +43,12 @@ const snakeConfig = {
   stepMs: 120,
   speedBoostFactor: 0.991,
   levelStep: 10
+};
+
+const leaderboardConfig = {
+  storageKey: "snakeLeaderboard",
+  playerNameKey: "snakePlayerName",
+  maxEntries: 10
 };
 
 const pointerZones = [
@@ -200,6 +212,196 @@ function resetSharedState() {
   enableControls();
 }
 
+function compareLeaderboardEntries(left, right) {
+  if (right.score !== left.score) {
+    return right.score - left.score;
+  }
+  if (right.level !== left.level) {
+    return right.level - left.level;
+  }
+  return right.length - left.length;
+}
+
+function getStoredSnakeLeaderboard() {
+  try {
+    const rawValue = window.localStorage.getItem(leaderboardConfig.storageKey);
+    if (!rawValue) {
+      return [];
+    }
+
+    const parsed = JSON.parse(rawValue);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((entry) => entry && typeof entry.name === "string" && Number.isFinite(entry.score))
+      .map((entry) => ({
+        name: entry.name.trim().slice(0, 18) || "Játékos",
+        score: Math.max(0, Math.floor(entry.score)),
+        level: Math.max(1, Math.floor(entry.level || 1)),
+        length: Math.max(3, Math.floor(entry.length || 3)),
+        achievedAt: typeof entry.achievedAt === "string" ? entry.achievedAt : new Date().toISOString()
+      }))
+      .sort(compareLeaderboardEntries)
+      .slice(0, leaderboardConfig.maxEntries);
+  } catch (error) {
+    return [];
+  }
+}
+
+function persistSnakeLeaderboard(entries) {
+  try {
+    window.localStorage.setItem(leaderboardConfig.storageKey, JSON.stringify(entries));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function getSavedPlayerName() {
+  try {
+    return window.localStorage.getItem(leaderboardConfig.playerNameKey) || "";
+  } catch (error) {
+    return "";
+  }
+}
+
+function savePlayerName(name) {
+  try {
+    window.localStorage.setItem(leaderboardConfig.playerNameKey, name);
+  } catch (error) {
+    return;
+  }
+}
+
+function renderSnakeLeaderboard() {
+  const entries = getStoredSnakeLeaderboard();
+  snakeLeaderboard.innerHTML = "";
+
+  if (entries.length === 0) {
+    const emptyItem = document.createElement("li");
+    emptyItem.className = "leaderboard-empty";
+    emptyItem.textContent = "Még nincs mentett eredmény. Játssz egy kört Snake-ben, és mentsd el az első rekordot.";
+    snakeLeaderboard.appendChild(emptyItem);
+    return;
+  }
+
+  entries.forEach((entry, index) => {
+    const item = document.createElement("li");
+    item.className = "leaderboard-item";
+
+    const rank = document.createElement("span");
+    rank.className = "leaderboard-rank";
+    rank.textContent = `#${index + 1}`;
+
+    const meta = document.createElement("div");
+    meta.className = "leaderboard-meta";
+
+    const name = document.createElement("strong");
+    name.textContent = entry.name;
+
+    const details = document.createElement("span");
+    details.textContent = `${entry.score} pont • ${entry.length} hossz • ${entry.level}. szint`;
+
+    meta.append(name, details);
+    item.append(rank, meta);
+    snakeLeaderboard.appendChild(item);
+  });
+}
+
+function setSnakeSaveState(enabled, hintText) {
+  playerNameInput.disabled = !enabled;
+  saveScoreButton.disabled = !enabled;
+
+  if (hintText) {
+    leaderboardHint.textContent = hintText;
+  }
+}
+
+function getLeaderboardCandidate(score, level, length) {
+  return {
+    score,
+    level,
+    length
+  };
+}
+
+function qualifiesForLeaderboard(score, level, length) {
+  if (score <= 0) {
+    return false;
+  }
+
+  const entries = getStoredSnakeLeaderboard();
+  if (entries.length < leaderboardConfig.maxEntries) {
+    return true;
+  }
+
+  const lastEntry = entries[entries.length - 1];
+  return compareLeaderboardEntries(getLeaderboardCandidate(score, level, length), lastEntry) < 0;
+}
+
+function finalizeSnakeGameOver(reason) {
+  const snake = state.snake;
+  if (!snake || snake.gameOverHandled) {
+    return;
+  }
+
+  snake.gameOver = true;
+  snake.gameOverHandled = true;
+  snake.accumulator = 0;
+
+  const canSave = qualifiesForLeaderboard(snake.score, snake.level, snake.snake.length);
+  if (canSave) {
+    setStatus(
+      "Snake vesztett",
+      `Végső pontszám: ${snake.score}. Írd be a neved, és mentsd el a toplistára.`
+    );
+    setSnakeSaveState(true, "Az aktuális kör elmenthető a helyi toplistába.");
+    playerNameInput.focus();
+  } else {
+    const reasonText = reason === "self" ? "A kígyó saját magának ütközött." : "A kígyó falnak ment.";
+    setStatus("Snake vesztett", `${reasonText} Végső pontszám: ${snake.score}.`);
+    setSnakeSaveState(false, "A toplista az eszközön tárolódik. Új rekordhoz játssz még egy kört.");
+  }
+}
+
+function saveCurrentSnakeScore() {
+  const snake = state.snake;
+  if (!snake || !snake.gameOver || snake.scoreSaved) {
+    return;
+  }
+
+  if (!qualifiesForLeaderboard(snake.score, snake.level, snake.snake.length)) {
+    setSnakeSaveState(false, "Ez az eredmény most nem fért be a top 10-be.");
+    return;
+  }
+
+  const trimmedName = playerNameInput.value.trim().slice(0, 18);
+  const playerName = trimmedName || "Játékos";
+  const nextEntries = getStoredSnakeLeaderboard()
+    .concat({
+      name: playerName,
+      score: snake.score,
+      level: snake.level,
+      length: snake.snake.length,
+      achievedAt: new Date().toISOString()
+    })
+    .sort(compareLeaderboardEntries)
+    .slice(0, leaderboardConfig.maxEntries);
+
+  if (!persistSnakeLeaderboard(nextEntries)) {
+    setSnakeSaveState(true, "A böngésző most nem engedte a mentést. Ellenőrizd, hogy a helyi tárhely nincs-e tiltva.");
+    return;
+  }
+
+  snake.scoreSaved = true;
+  savePlayerName(playerName);
+  playerNameInput.value = playerName;
+  setSnakeSaveState(false, "A pont elmentve. A toplista a böngésző helyi tárhelyén marad.");
+  renderSnakeLeaderboard();
+}
+
 function startMario() {
   resetSharedState();
   state.activeGame = "mario";
@@ -234,6 +436,7 @@ function startMario() {
       { x: 2520, y: 220, r: 10, taken: false }
     ]
   };
+  setSnakeSaveState(false, "A toplista a Snake játékhoz tartozik. Indíts egy Snake kört az új rekordhoz.");
   setStatus("Mario játék fut", "Irányítás: nyilak vagy A/D, ugrás: W, Fel vagy Space.");
   launchLoop();
 }
@@ -242,22 +445,29 @@ function startSnake() {
   resetSharedState();
   state.activeGame = "snake";
   const center = Math.floor(snakeConfig.gridSize / 2);
+  const initialSnake = [
+    { x: center, y: center },
+    { x: center - 1, y: center },
+    { x: center - 2, y: center }
+  ];
+
   state.snake = {
-    snake: [
-      { x: center, y: center },
-      { x: center - 1, y: center },
-      { x: center - 2, y: center }
-    ],
+    snake: initialSnake,
     direction: { x: 1, y: 0 },
     nextDirection: { x: 1, y: 0 },
-    food: spawnFood([]),
+    food: spawnFood(initialSnake),
     score: 0,
     level: 1,
     currentStepMs: snakeConfig.stepMs,
     levelUpTimer: 0,
     accumulator: 0,
-    gameOver: false
+    gameOver: false,
+    gameOverHandled: false,
+    scoreSaved: false
   };
+
+  playerNameInput.value = getSavedPlayerName();
+  setSnakeSaveState(false, "Játék közben itt látod a top 10-et, a kör végén pedig el tudod menteni az eredményt.");
   setStatus("Snake játék fut", "Irányítás: nyilak vagy WASD. Érintésnél a vászon szélei vezérelnek.");
   launchLoop();
 }
@@ -282,7 +492,7 @@ function launchLoop() {
 
 function drawIntroOverlay() {
   if (state.activeGame === "mario") {
-    renderMario(0);
+    renderMario();
   } else if (state.activeGame === "snake") {
     renderSnake();
   } else {
@@ -300,7 +510,7 @@ function tick(timestamp) {
   if (!state.paused) {
     if (state.activeGame === "mario") {
       updateMario(delta);
-      renderMario(delta);
+      renderMario();
     } else if (state.activeGame === "snake") {
       updateSnake(delta);
       renderSnake();
@@ -308,7 +518,7 @@ function tick(timestamp) {
       renderIdle();
     }
   } else if (state.activeGame === "mario") {
-    renderMario(delta);
+    renderMario();
     drawPaused();
   } else if (state.activeGame === "snake") {
     renderSnake();
@@ -473,8 +683,8 @@ function renderMario() {
   ctx.fillRect(16, 16, 250, 80);
   ctx.fillStyle = "#ffffff";
   ctx.font = "700 22px Trebuchet MS";
-  ctx.fillText(`Ermék: ${mario.coins}`, 28, 48);
-  ctx.fillText(`Pozíció: ${Math.floor(player.x)}m`, 28, 80);
+  ctx.fillText(`Érmék: ${mario.coins}`, 28, 48);
+  ctx.fillText(`Pozíció: ${Math.floor(player.x)} m`, 28, 80);
 
   if (mario.won) {
     drawBanner("Nyertél!");
@@ -520,8 +730,13 @@ function updateSnake(delta) {
       nextHead.x >= snakeConfig.gridSize ||
       nextHead.y >= snakeConfig.gridSize;
     if (hitWall) {
-      snake.gameOver = true;
-      setStatus("Snake vesztett", `Végső pontszám: ${snake.score}. Nyomd meg az Újraindítás gombot.`);
+      finalizeSnakeGameOver("wall");
+      return;
+    }
+
+    const hitSelf = snake.snake.some((segment) => segment.x === nextHead.x && segment.y === nextHead.y);
+    if (hitSelf) {
+      finalizeSnakeGameOver("self");
       return;
     }
 
@@ -628,11 +843,11 @@ function drawPlatform(x, y, w, h) {
 
 function drawHazard(x, y, w, h) {
   ctx.fillStyle = "#c62f2f";
-  for (let i = 0; i < w; i += 10) {
+  for (let index = 0; index < w; index += 10) {
     ctx.beginPath();
-    ctx.moveTo(x + i, y + h);
-    ctx.lineTo(x + i + 5, y);
-    ctx.lineTo(x + i + 10, y + h);
+    ctx.moveTo(x + index, y + h);
+    ctx.lineTo(x + index + 5, y);
+    ctx.lineTo(x + index + 10, y + h);
     ctx.closePath();
     ctx.fill();
   }
@@ -766,18 +981,41 @@ canvas.addEventListener("pointerdown", (event) => {
   canvas.setPointerCapture(event.pointerId);
   handlePointer(event);
 });
+
 canvas.addEventListener("pointermove", (event) => {
   if (event.buttons > 0) {
     handlePointer(event);
   }
 });
+
 canvas.addEventListener("pointerup", clearPointer);
 canvas.addEventListener("pointercancel", clearPointer);
 canvas.addEventListener("pointerleave", clearPointer);
+
+leaderboardForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveCurrentSnakeScore();
+});
+
+clearLeaderboardButton.addEventListener("click", () => {
+  persistSnakeLeaderboard([]);
+  renderSnakeLeaderboard();
+
+  const canSaveCurrentScore =
+    state.activeGame === "snake" &&
+    state.snake &&
+    state.snake.gameOver &&
+    !state.snake.scoreSaved &&
+    qualifiesForLeaderboard(state.snake.score, state.snake.level, state.snake.snake.length);
+
+  setSnakeSaveState(canSaveCurrentScore, "A toplista törölve lett erről az eszközről.");
+});
 
 marioButton.addEventListener("click", startMario);
 snakeButton.addEventListener("click", startSnake);
 restartButton.addEventListener("click", restartGame);
 pauseButton.addEventListener("click", togglePause);
 
+playerNameInput.value = getSavedPlayerName();
+renderSnakeLeaderboard();
 renderIdle();

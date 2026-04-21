@@ -212,6 +212,115 @@ h1 {
   padding: 24px;
 }
 
+.leaderboard-card {
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  background: rgba(7, 17, 28, 0.72);
+}
+
+.leaderboard-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.leaderboard-heading h3 {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+}
+
+.leaderboard-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.leaderboard-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.leaderboard-label {
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.leaderboard-input-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.leaderboard-input-row input {
+  flex: 1 1 240px;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  font: inherit;
+}
+
+.leaderboard-input-row input::placeholder {
+  color: rgba(247, 239, 255, 0.48);
+}
+
+.leaderboard-input-row input:disabled {
+  opacity: 0.6;
+}
+
+.secondary.accent {
+  background: linear-gradient(135deg, #7fe59d, var(--accent-snake));
+  color: #052012;
+  box-shadow: 0 16px 34px rgba(73, 178, 107, 0.24);
+}
+
+.secondary.danger {
+  background: rgba(255, 107, 107, 0.15);
+  color: #ffd5d5;
+}
+
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.leaderboard-item,
+.leaderboard-empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-rank {
+  flex: 0 0 auto;
+  min-width: 52px;
+  font-weight: 700;
+  color: #7fe59d;
+}
+
+.leaderboard-meta {
+  display: grid;
+  gap: 4px;
+}
+
+.leaderboard-meta span,
+.leaderboard-empty {
+  color: var(--muted);
+}
+
 .status-bar {
   display: flex;
   flex-direction: column;
@@ -258,6 +367,14 @@ canvas {
   .game-button,
   .secondary {
     width: 100%;
+  }
+
+  .leaderboard-heading {
+    flex-direction: column;
+  }
+
+  .leaderboard-input-row input {
+    flex-basis: 100%;
   }
 }
 

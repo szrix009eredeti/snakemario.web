@@ -7,7 +7,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests">
   <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <title>Mario és Snake Játékok</title>
+  <title>Mario és Snake játékok</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -47,6 +47,26 @@
         <button id="restartButton" class="secondary" type="button" disabled>Újraindítás</button>
         <button id="pauseButton" class="secondary" type="button" disabled>Szünet</button>
       </div>
+
+      <section class="leaderboard-card" aria-labelledby="leaderboardTitle">
+        <div class="leaderboard-heading">
+          <div>
+            <h3 id="leaderboardTitle">Snake toplista</h3>
+            <p id="leaderboardHint">A pontok ezen az eszközön mentődnek el, így statikus oldalon is azonnal látszanak.</p>
+          </div>
+          <button id="clearLeaderboardButton" class="secondary danger" type="button">Toplista törlése</button>
+        </div>
+
+        <form id="leaderboardForm" class="leaderboard-form">
+          <label class="leaderboard-label" for="playerNameInput">Játékosnév</label>
+          <div class="leaderboard-input-row">
+            <input id="playerNameInput" name="playerName" type="text" maxlength="18" placeholder="Pl. Marcsi" autocomplete="nickname" disabled>
+            <button id="saveScoreButton" class="secondary accent" type="submit" disabled>Pont mentése</button>
+          </div>
+        </form>
+
+        <ol id="snakeLeaderboard" class="leaderboard-list"></ol>
+      </section>
     </section>
   </main>
 
